@@ -1,46 +1,39 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Wed May 29 22:22:47 2024
 @author: Posen Chen
+跑程式的電腦設備： MacBook Air M2
+Ver 0.1 從老師提供的程式碼裡剪貼出必要的部分 使用CIFAR-10資料集 調整參數讓程式可順利運行
+Ver 0.2 預計增加計算訓練時間的code 以及刪除修改一些註解
 """
-# Import PyTorch
+import time # 量測量時間成本用
 import torch
 from torch import nn
-
-# Import torchvision 
-import torchvision
+# import torchvision
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 
-# Import matplotlib for visualization
-import matplotlib.pyplot as plt
-
-#Getting a dataset
-
-#1. FashionMNIST Example
-# Setup training data
+# 使用內建資料集 CIFAR10
+# 訓練資料
 train_data = datasets.CIFAR10(
-    root="data", # where to download data to?
-    train=True, # get training data
-    download=True, # download data if it doesn't exist on disk
-    transform=ToTensor(), # images come as PIL format, we want to turn into Torch tensors
-    target_transform=None # you can transform labels as well
+    root="data", # 資料位於工作資料夾內的data資料夾
+    train=True, # 此內建資料集友善的提供幫忙分訓練資料的功能 True：訓練資料
+    download=True, # 如果root所指定的data資料夾內無資料的話就下載資料
+    transform=ToTensor(), # 將圖片由PIL格式轉成Torch tensors
+    target_transform=None # 是否要指定各個標籤的名稱    None：使用原來的標籤名
 )
-# Setup testing data
+# 測試資料
 test_data = datasets.CIFAR10(
     root="data",
-    train=False, # get test data
+    train=False, # 此內建資料集友善的提供幫忙分訓練資料的功能 False：測試資料
     download=True,
     transform=ToTensor()
 )
 # See first training sample
-image, label = train_data[0]
-image, label
+# image, label = train_data[0]
+# image, label
 #1.1 Input and output shapes of a computer vision model
 # What's the shape of the image?
-image.shape
-#
+# image.shape
 # How many samples are there? 
 train_data.data.shape
 # See classes
@@ -49,8 +42,7 @@ class_names
 
 #Let's create DataLoader's for our training and test sets.
 from torch.utils.data import DataLoader
-
-# Setup the batch size hyperparameter
+# 設定batch size  每次forward back抓幾筆資料來訓練
 BATCH_SIZE = 32
 
 # Turn datasets into iterables (batches)
@@ -65,17 +57,17 @@ test_dataloader = DataLoader(test_data,
 )
 
 # Check out what's inside the training dataloader
-train_features_batch, train_labels_batch = next(iter(train_dataloader))
-train_features_batch.shape, train_labels_batch.shape
+# train_features_batch, train_labels_batch = next(iter(train_dataloader))
+# train_features_batch.shape, train_labels_batch.shape
 
-##CNN
-# Create a convolutional neural network 設計藍圖
+## CNN
+#設計CNN藍圖
 class CIFAR10V1(nn.Module):
 
     def __init__(self, input_shape: int, hidden_units: int, output_shape: int):
         super().__init__()
         self.block_1 = nn.Sequential(
-            nn.Conv2d(in_channels=input_shape, #in_channels (int) – Number of channels in the input image
+            nn.Conv2d(in_channels=input_shape, # 輸入圖片的channel數  灰階=1  RGB=3
                       out_channels=hidden_units, 
                       kernel_size=3, # how big is the square that's going over the image? 就是filter的大小
                       stride=1, # default
@@ -116,8 +108,7 @@ optimizer = torch.optim.SGD(params=model_1.parameters(), lr=0.1)
 
 
 torch.manual_seed(42)
-
-# Measure time
+start = time.time() # 計時開始 開始時間點
 # Train and test model 
 epochs = 3
 for epoch in range(epochs):
@@ -149,7 +140,8 @@ for epoch in range(epochs):
 
     # Divide total train loss by length of train dataloader (average loss per batch per epoch)
     train_loss /= len(train_dataloader)
-
+end = time.time() # 結束時間點1
+total_time = end - start  # 費時多久1
 
 def accuracy_fn(y_true, y_pred):
     """Calculates accuracy between truth labels and predictions.
@@ -200,8 +192,9 @@ def eval_model(model: torch.nn.Module,
             "model_acc": acc}
 
 
-# Calculate model 0 results on test dataset
+# 計算訓練過後的model用在測試資料集的正確率
 model_1_results = eval_model(model=model_1, data_loader=test_dataloader,
     loss_fn=loss_fn, accuracy_fn=accuracy_fn
 )
-model_1_results
+print(model_1_results)
+print("訓練時間：",total_time)
