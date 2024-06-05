@@ -7,35 +7,41 @@ Ver 0.1 從老師提供的程式碼裡剪貼出必要的部分 使用CIFAR-10資
 Ver 0.2 增加簡單計算訓練時間的code 以及刪除修改一些註解
 Ver 0.3 超參數置頂 結果可輸出至CSV 但表格內容還沒設計好
 Ver 0.4 大改版 改用使用者手動輸入參數來增加測試彈性 卷基層數目參數設定說明 增加參數量的計算 表格內容更新 #測試傳說中的LaNet-5{'model_loss': 1.3637713193893433, 'model_acc': 50.78873801916933}訓練時間： 31.333121061325073
+Ver 0.5 增加Confusion Matrix ＆ 輸出CM圖     修正 output chanel 設定10以外的錯誤
 
+what in future?
 將收集到的時間成本資料y 超參數x... 拿去跑迴歸
 觀察不同CNN架構  的時間成本資料 與正確率資料  看看什麼樣的架構的效率較佳  或者前期較佳 後期較佳 與要辨識的目標有什麼關係 能感覺出可能有什麼樣的關係
 殘差分析XD 觀察錯誤辨識的情形 是否常出現在某些類別 Q:若只在少數類別間辨識較差ex:小白鷺跟別的白鷺絲 可否能設計加強辨識難點的訓練資料 或者是在目前已訓練完的模型的基礎上再補訓練要加強的部分
-
 結果繪圖
 迴圈 想要一次跑多組 超難寫 哭哭
 測試其他參數
 
 期末報告及評分方式
 以Pytorch建立神經網路模型，在以下超參數進行測試(上課時讓各組各選三個,去嚐試各3種情況)
-(2)卷積層的數目
-(3)卷積層filter的數目.
-(4)pooling的size
+(2)卷積層的數目  
+(3)卷積層filter的數目.   以調整kernel_size, stride, padding 的方式來調整 
+(4)pooling的size  直接設定
 """
-#%% 載入套件&超參數設定區  超參數僅需設定 CRPF 以大寫英文字母CRPF字串方式設定 並修改第153 154行程式碼後 就可以執行全部的程式碼 再自行手動input參數
+#%% 載入套件&超參數設定區  超參數僅需設定 CRPF 以大寫英文字母CRPF字串方式設定 並修改第159 160行程式碼後 就可以執行全部的程式碼 再自行手動input參數
 import time # 量測量時間成本用
+from datetime import datetime # 圖檔命名用 以避免覆蓋   pip install datetime
 import torch
 from torch import nn
 from torchvision import datasets
 from torchvision.transforms import ToTensor
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt # 若熱力圖僅第一row 有數字的話 請將 matplotlib 降版至3.7.3  pip install matplotlib==3.7.3
+import seaborn as sn  # conda install seaborn
 import pandas as pd
+import numpy as np
 import os
 
 # 卷積層的數目 原則：1.第一層為C 2.F後面只能為F或者放最後 3.第一個F前面為P 4.C後面必接R(因為本次不測試不同的activation function) 5.R後面為C或P
 # 在nn.Sequential()中物件的數量 就是CRP的總數 如 CRCRPF就  nn.Sequential( sb[0],sb[1],sb[2],sb[3],sb[4] )  ,  nn.Sequential( sc[0],sc[1] )
-CRPF = "CRCRPF" #, 4["CRPF"], 6["CRCRPF"], 7["CRPCRPF"], 8["CRCRCRPF"], 9["CRPCRCRPF", "CRCRPCRPF"] , 10["CRCRCRCRPF", "CRPCRPCRPF"]
-print("請153行程式碼 self.block_1 = nn.Sequential(  )  的括弧中填入",CRPF.count("C") + CRPF.count("R") + CRPF.count("P"),"個物件")
-print("請在154行程式碼 self.classifier = nn.Sequential(  )  的括弧中填入",CRPF.count("F")+1,"個物件")
+CRPF = "CRPF" #, 4["CRPF"], 6["CRCRPF"], 7["CRPCRPF"], 8["CRCRCRPF"], 9["CRPCRCRPF", "CRCRPCRPF"] , 10["CRCRCRCRPF", "CRPCRPCRPF"]
+print("請159行程式碼 self.block_1 = nn.Sequential(  )  的括弧中填入",CRPF.count("C") + CRPF.count("R") + CRPF.count("P"),"個物件")
+print("請在160行程式碼 self.classifier = nn.Sequential(  )  的括弧中填入",CRPF.count("F")+1,"個物件")
 # CKS = 3 # [3, 5, 7] # kernel_size= 也就是卷積層filter 大小
 # CS = 1 # [1, 2, 3] # stride= 每次filter移動的步數
 # CP = 1 # [0, 1, 2] # padding= 圖片外圍多鋪幾層
@@ -93,7 +99,7 @@ KS = eval(input("kernel_size="))
 CS = eval(input("stride="))
 CP = eval(input("padding="))
 PR = (KS*KS*3+1)*OC # 參數量計算
-sb.append(nn.Conv2d(in_channels=3,out_channels=HU,kernel_size=KS,stride=CS,padding=CP))
+sb.append(nn.Conv2d(in_channels=3,out_channels=OC,kernel_size=KS,stride=CS,padding=CP))
 IC = OC # 下一層的in_channels
 HW = 32 + 2*CP - KS + 1 # 下一層的Height Width
 CNNdescribe.append(["CNN模型：", CRPF, "輸入層為彩色圖片32*32*3 \n 第,1,層為卷積層 kernel_size=", KS, "輸出為",HW,"*",HW,"*",OC,"\n"])
@@ -106,7 +112,7 @@ for i in range(1,len(CRPF)):
         CS = eval(input("stride="))
         CP = eval(input("padding="))
         PR = PR + (KS*KS*3+1)*OC # 參數量計算
-        sb.append(nn.Conv2d(in_channels=IC,out_channels=HU,kernel_size=KS,stride=CS,padding=CP))
+        sb.append(nn.Conv2d(in_channels=IC,out_channels=OC,kernel_size=KS,stride=CS,padding=CP))
         IC = OC # 下一層的in_channels
         HW = HW + 2*CP - KS + 1 # 下一層的Height Width
         CNNdescribe.append(["第",i+1,"層為卷積層 kernel_size=", KS, "輸出為",HW,"*",HW,"*",OC,"\n"])
@@ -150,7 +156,7 @@ class CIFAR10V1(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.block_1 = nn.Sequential( sb[0],sb[1],sb[2],sb[3],sb[4] )
+        self.block_1 = nn.Sequential( sb[0],sb[1],sb[2] )
         self.classifier = nn.Sequential( sc[0],sc[1] )
     
     def forward(self, x: torch.Tensor):
@@ -212,6 +218,8 @@ def accuracy_fn(y_true, y_pred):
     acc = (correct / len(y_pred)) * 100
     return acc
 
+
+#%%
 torch.manual_seed(42)
 def eval_model(model: torch.nn.Module, 
                data_loader: torch.utils.data.DataLoader, 
@@ -231,14 +239,39 @@ def eval_model(model: torch.nn.Module,
     loss, acc = 0, 0
     model.eval() # 評估model的正確率用
     with torch.inference_mode():
+        
+        # err_ypred = {}
+        # err_ytrue = {}
+        # for i in torch.Tensor(range(10)):
+        #     err_ypred[i] = torch.Tensor(0)
+        #     err_ytrue[i] = torch.Tensor(0)
+        y_CM_pred = []
+        y_CM_true = []
+        
         for X, y in data_loader:
             # Make predictions with the model
             y_pred = model(X)
+            
+            
+            
+            y_CM_pred.extend((torch.max(torch.exp(y_pred), 1)[1]).data.cpu().numpy())
+            y_CM_true.extend(y.data.cpu().numpy())
+            # y_pre = y_pred.argmax(dim=1)
             
             # Accumulate the loss and accuracy values per batch
             loss += loss_fn(y_pred, y)
             acc += accuracy_fn(y_true=y, 
                                 y_pred=y_pred.argmax(dim=1)) # For accuracy, need the prediction labels (logits -> pred_prob -> pred_labels)
+        
+        # build CM
+        CM = confusion_matrix(y_CM_true, y_CM_pred)
+        df_CM = pd.DataFrame(CM / np.sum(CM, axis=1)[:, None], index=[i for i in class_names], columns=[i for i in class_names])
+        plt.figure(figsize= (12,7))
+        sn.heatmap(df_CM, annot=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        CMfileName = f"CM_{CRPF}_{timestamp}.png"
+        plt.savefig(CMfileName)
+        
         
         # Scale loss and acc to find the average loss/acc per batch
         loss /= len(data_loader)
@@ -247,12 +280,17 @@ def eval_model(model: torch.nn.Module,
     return {"model_name": model.__class__.__name__, # only works when model was created with a class
             "model_loss": loss.item(),
             "model_acc": acc}
+            # "err_ypred:": err_ypred,
+            # "err_ytrue:": err_ytrue}
 
 
 # 計算訓練過後的model用在測試資料集的正確率
 model_1_results = eval_model(model=model_1, data_loader=test_dataloader,
     loss_fn=loss_fn, accuracy_fn=accuracy_fn
 )
+
+#%%
+
 
 print(model_1)
 print(model_1_results)
