@@ -24,7 +24,7 @@ what in future?
 (3)卷積層filter的數目.   以調整kernel_size, stride, padding 的方式來調整 
 (4)pooling的size  直接設定
 """
-#%% 載入套件&超參數設定區  超參數僅需設定 CRPF 以大寫英文字母CRPF字串方式設定 並修改第159 160行程式碼後 就可以執行全部的程式碼 再自行手動input參數
+#%% 載入套件&超參數設定區  超參數僅需設定 CRPF 以大寫英文字母CRPF字串方式設定 並修改第160 161行程式碼後 就可以執行全部的程式碼 再自行手動input參數
 import time # 量測量時間成本用
 from datetime import datetime # 圖檔命名用 以避免覆蓋   pip install datetime
 import torch
@@ -41,8 +41,8 @@ import os
 # 卷積層的數目 原則：1.第一層為C 2.F後面只能為F或者放最後 3.第一個F前面為P 4.C後面必接R(因為本次不測試不同的activation function) 5.R後面為C或P
 # 在nn.Sequential()中物件的數量 就是CRP的總數 如 CRCRPF就  nn.Sequential( sb[0],sb[1],sb[2],sb[3],sb[4] )  ,  nn.Sequential( sc[0],sc[1] )
 CRPF = "CRPF" #, 4["CRPF"], 6["CRCRPF"], 7["CRPCRPF"], 8["CRCRCRPF"], 9["CRPCRCRPF", "CRCRPCRPF"] , 10["CRCRCRCRPF", "CRPCRPCRPF"]
-print("請159行程式碼 self.block_1 = nn.Sequential(  )  的括弧中填入",CRPF.count("C") + CRPF.count("R") + CRPF.count("P"),"個物件")
-print("請在160行程式碼 self.classifier = nn.Sequential(  )  的括弧中填入",CRPF.count("F")+1,"個物件")
+print("請160行程式碼 self.block_1 = nn.Sequential(  )  的括弧中填入",CRPF.count("C") + CRPF.count("R") + CRPF.count("P"),"個物件")
+print("請在161行程式碼 self.classifier = nn.Sequential(  )  的括弧中填入",CRPF.count("F")+1,"個物件")
 # CKS = 3 # [3, 5, 7] # kernel_size= 也就是卷積層filter 大小
 # CS = 1 # [1, 2, 3] # stride= 每次filter移動的步數
 # CP = 1 # [0, 1, 2] # padding= 圖片外圍多鋪幾層
