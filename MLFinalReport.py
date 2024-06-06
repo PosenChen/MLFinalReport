@@ -8,6 +8,7 @@ Ver 0.2 增加簡單計算訓練時間的code 以及刪除修改一些註解
 Ver 0.3 超參數置頂 結果可輸出至CSV 但表格內容還沒設計好
 Ver 0.4 大改版 改用使用者手動輸入參數來增加測試彈性 卷基層數目參數設定說明 增加參數量的計算 表格內容更新 #測試傳說中的LaNet-5{'model_loss': 1.3637713193893433, 'model_acc': 50.78873801916933}訓練時間： 31.333121061325073
 Ver 0.5 增加Confusion Matrix ＆ 輸出CM圖     修正 output chanel 設定10以外的錯誤
+Ver 0.6 修正C層stride 不為1時的問題
 
 what in future?
 將收集到的時間成本資料y 超參數x... 拿去跑迴歸
@@ -101,7 +102,7 @@ CP = eval(input("padding="))
 PR = (KS*KS*3+1)*OC # 參數量計算
 sb.append(nn.Conv2d(in_channels=3,out_channels=OC,kernel_size=KS,stride=CS,padding=CP))
 IC = OC # 下一層的in_channels
-HW = 32 + 2*CP - KS + 1 # 下一層的Height Width
+HW = (32 + 2*CP - KS)//CS + 1 # 下一層的Height Width
 CNNdescribe.append(["CNN模型：", CRPF, "輸入層為彩色圖片32*32*3 \n 第,1,層為卷積層 kernel_size=", KS, "輸出為",HW,"*",HW,"*",OC,"\n"])
 
 for i in range(1,len(CRPF)):
@@ -114,7 +115,7 @@ for i in range(1,len(CRPF)):
         PR = PR + (KS*KS*3+1)*OC # 參數量計算
         sb.append(nn.Conv2d(in_channels=IC,out_channels=OC,kernel_size=KS,stride=CS,padding=CP))
         IC = OC # 下一層的in_channels
-        HW = HW + 2*CP - KS + 1 # 下一層的Height Width
+        HW = (HW + 2*CP - KS)//CS + 1 # 下一層的Height Width
         CNNdescribe.append(["第",i+1,"層為卷積層 kernel_size=", KS, "輸出為",HW,"*",HW,"*",OC,"\n"])
     elif CRPF[i] == "R":
         sb.append(nn.ReLU())
