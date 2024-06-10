@@ -2,7 +2,6 @@
 """
 Created on Wed May 29 22:22:47 2024
 @author: Posen Chen
-跑程式的電腦設備： MacBook Air M2
 Ver 0.1 從老師提供的程式碼裡剪貼出必要的部分 使用CIFAR-10資料集 調整參數讓程式可順利運行
 Ver 0.2 增加簡單計算訓練時間的code 以及刪除修改一些註解
 Ver 0.3 超參數置頂 結果可輸出至CSV 但表格內容還沒設計好
@@ -11,6 +10,7 @@ Ver 0.5 增加Confusion Matrix ＆ 輸出CM圖     修正 output chanel 設定10
 Ver 0.6 修正C層stride 不為1時的問題
 Ver 0.7 修正F層後的R層的問題
 Ver 0.8 修改輸出的csv encoding='utf-8-sig'   以利windows系統開啟
+Ver 0.9 修正第2層之後的卷積層參數量計算錯誤的問題
 
 what in future?
 將收集到的時間成本資料y 超參數x... 拿去跑迴歸
@@ -19,7 +19,7 @@ what in future?
 迴圈 想要一次跑多組 超難寫 哭哭
 測試其他參數 結果繪圖
 
-期末報告及評分方式
+期末報告及評分方式：
 以Pytorch建立神經網路模型，在以下超參數進行測試(上課時讓各組各選三個,去嚐試各3種情況)
 (2)卷積層的數目  
 (3)卷積層filter的數目.   以調整kernel_size, stride, padding 的方式來調整 
@@ -42,8 +42,8 @@ import os
 # 卷積層的數目 原則：1.第一層為C 2.F後面只能為RF或者放最後 3.第一個F前面為P 4.C後面必接R(因為本次不測試不同的activation function) 5.R前面如果是F的話後面就接F R前面如果不是F的話後面接為C或P
 # 在nn.Sequential()中物件的數量 就是CRP的總數 如 CRCRPF就  nn.Sequential( sb[0],sb[1],sb[2],sb[3],sb[4] )  ,  nn.Sequential( sc[0],sc[1] )
 CRPF = "CRCRPF" #, 4["CRPF"], 6["CRCRPF"], 7["CRPCRPF"], 8["CRCRCRPF"], 9["CRPCRCRPF", "CRCRPCRPF"] , 10["CRCRCRCRPF", "CRPCRPCRPF"]
-# Ver 0.7 後公式有變還每修改 print("請160行程式碼 self.block_1 = nn.Sequential(  )  的括弧中填入",CRPF.count("C") + CRPF.count("R") + CRPF.count("P"),"個物件")
-# Ver 0.7 後公式有變還每修改 print("請在161行程式碼 self.classifier = nn.Sequential(  )  的括弧中填入",CRPF.count("F")+1,"個物件")
+# Ver 0.7 後公式有變還每修改 print("請164行程式碼 self.block_1 = nn.Sequential(  )  的括弧中填入",CRPF.count("C") + CRPF.count("R") + CRPF.count("P"),"個物件")
+# Ver 0.7 後公式有變還每修改 print("請在165行程式碼 self.classifier = nn.Sequential(  )  的括弧中填入",CRPF.count("F")+1,"個物件")
 # CKS = 3 # [3, 5, 7] # kernel_size= 也就是卷積層filter 大小
 # CS = 1 # [1, 2, 3] # stride= 每次filter移動的步數
 # CP = 1 # [0, 1, 2] # padding= 圖片外圍多鋪幾層
@@ -113,7 +113,7 @@ for i in range(1,len(CRPF)):
         KS = eval(input("kernel_size="))
         CS = eval(input("stride="))
         CP = eval(input("padding="))
-        PR = PR + (KS*KS*3+1)*OC # 參數量計算
+        PR = PR + (KS*KS*IC+1)*OC # 參數量計算
         sb.append(nn.Conv2d(in_channels=IC,out_channels=OC,kernel_size=KS,stride=CS,padding=CP))
         IC = OC # 下一層的in_channels
         HW = (HW + 2*CP - KS)//CS + 1 # 下一層的Height Width
